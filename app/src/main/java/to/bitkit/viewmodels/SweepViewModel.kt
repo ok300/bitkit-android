@@ -28,7 +28,7 @@ class SweepViewModel @Inject constructor(
     fun checkBalance() = viewModelScope.launch {
         _uiState.update { it.copy(checkState = CheckState.Checking) }
 
-        val result = withTimeoutOrNull(CHECK_BALANCE_TIMEOUT_SECONDS.seconds) {
+        val result = withTimeoutOrNull(CHECK_BALANCE_TIMEOUT) {
             sweepRepo.checkSweepableBalances()
         }
 
@@ -177,7 +177,7 @@ class SweepViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "SweepViewModel"
-        private const val CHECK_BALANCE_TIMEOUT_SECONDS = 60L
+        private val CHECK_BALANCE_TIMEOUT = 60.seconds
     }
 }
 
