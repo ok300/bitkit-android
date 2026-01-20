@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 import to.bitkit.models.TransactionSpeed
 import to.bitkit.models.safe
 import to.bitkit.repositories.LightningRepo
@@ -26,7 +28,17 @@ class SweepViewModel @Inject constructor(
     fun checkBalance() = viewModelScope.launch {
         _uiState.update { it.copy(checkState = CheckState.Checking) }
 
-        sweepRepo.checkSweepableBalances().fold(
+        val result = withTimeoutOrNull(CHECK_BALANCE_TIMEOUT_SECONDS.seconds) {
+            sweepRepo.checkSweepableBalances()
+        }
+
+        if (result == null) {
+            Logger.error("Timeout checking sweepable balance", context = TAG)
+            _uiState.update { it.copy(checkState = CheckState.Error("Connection timeout")) }
+            return@launch
+        }
+
+        result.fold(
             onSuccess = { balances ->
                 if (balances.totalBalance > 0u) {
                     _uiState.update {
@@ -165,6 +177,7 @@ class SweepViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "SweepViewModel"
+        private const val CHECK_BALANCE_TIMEOUT_SECONDS = 60L
     }
 }
 
